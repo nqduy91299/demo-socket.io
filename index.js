@@ -8,15 +8,15 @@ app.engine('.hbs', hbs({extname: '.hbs'}));
 app.set('view engine', '.hbs');
 
 
-app.get('/', (req, res) => {
+
+app.use('/chat/:id', (req, res) => {
+    res.render('chat')
+});
+app.get('/chat', (req, res) => {
     res.render('index')
 })
 
-app.use('/chat', (req, res) => {
-    res.render('chat')
-});
-
-app.use('/login', (req, res) => {
+app.use('/', (req, res) => {
     res.render('login')
 });
 
@@ -32,19 +32,21 @@ const io = socketio(httpServer);
 io.on('connection', (client) => {
     console.log(`Client ${client.id} is connected`);
 
-
     client.on('disconnect', () => {
         console.log(`Client ${client.id} is disconnected`)
-        client.broadcast.emit('exit-user', client.id);
+        client.broadcast.emit('exit-user', {id: client.id, username: client.username});
     })
 
     client.on('register-username', (username) => {
         client.username = username;
-        console.log('emit register ',username)
-        client.broadcast.emit('register-username', {id: client.id, username: username})
+        client.broadcast.emit('register-username', {id: client.id, username: client.username})
     })
 
+    client.on('private message', (data) => {
+        io.to(data.to).emit('private message', data);
+    })
     client.emit('list-users', Array.from(io.sockets.sockets.values()).map(socket => ({id: socket.id, username: socket.username})));
+
 
     client.broadcast.emit('new-user', {id: client.id, username: client.username})
 })

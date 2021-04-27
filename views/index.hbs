@@ -105,14 +105,17 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
   let socket;
-  let usernameClient;
+  let usernameClient = sessionStorage.getItem('lab10-web');
   let usersList = [];
 
   $(document).ready(() => {
 
+    if (!usernameClient) {
+      window.location.href = '/'
+    }
+
     socket = io();
 
-    console.log("connect to server");
     socket.on('connect', handleConnection)
     socket.on('disconnect', () => console.log('Disconnect successfully'));
 
@@ -125,8 +128,6 @@
 
 
     function handleConnection() {
-      console.log("Connect successfully with id " + socket.id)
-      usernameClient = sessionStorage.getItem('lab10-web')
       if (!usernameClient) {
         usernameClient = prompt('Enter your username');
       }
@@ -142,15 +143,12 @@
           displayUsers(user)
         }
       })
-      console.log(usersList)
     }
     function handleNewUser(user) {
-      console.log(user);
       usersList.push(user);
-      console.log(usersList)
-      console.log(`New user added. Total users: ${usersList.length}`);
     }
-    function handleExitUser(id) {
+    function handleExitUser(data) {
+      const { id, username } = data
       let usernameExit;
       usersList = usersList.filter(u => {
         if (u.id === id) {
@@ -160,17 +158,13 @@
       });
       removeUser(id)
       notifyOffline(usernameExit)
-      console.log(`${usernameExit} has left. Users left: ${usersList.length}`)
     }
     function newUserWithUsername(data) {
-      console.log('data', data)
       const { id, username } = data;
       let user = usersList.find(u => u.id == id);
       if (!user) {
-        console.log('Can not find user with id: ' + id)
       }
       user.username = username;
-      console.log('Client has register username: ' + username)
 
       displayUsers(data)
       notifyOnline(user.username)
@@ -179,21 +173,24 @@
   })
 
   function displayUsers(user) {
+    const id = user.id;
     const userDiv = $(`
-            <div id="${user.id}" class="user">
-              <div class="avatar">${'hi'}</div>
+            <div id="${id}" class="user" >
+              <div class="avatar">${user.username[0]}</div>
               <div class="user-info">
                 <div class="user-name">${user.username}</div>
                 <div class="online">Truy cập lúc: 17:00'</div>
               </div>
               <div class="status">
                 <div class="badge badge-success badge-pill">Đang rảnh</div>
-              </div>
-
+              </div>  
             </div>
       `);
     $('#users-list').append(userDiv);
     $('#count-length').html($('#users-list .user').length);
+    $(`#${id}`).click((e) => {
+      window.location.href = `/chat/${user.username}`
+    })
   }
 
   function removeUser(id) {
@@ -215,4 +212,6 @@
       $('#offline-notification').fadeTo(1000, 0);
     }, 3000)
   }
+
+
 </script>
